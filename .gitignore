@@ -1,1 +1,5 @@
-node_modules/
+wwwroot/*.js
+node_modules
+typings
+dist
+postman-api-generated

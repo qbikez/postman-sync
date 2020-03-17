@@ -6,16 +6,23 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "start": "ts-node .",
-    "test": "jest"
+    "test": "jest --watchAll"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/got": "^9.6.9",
     "@types/jest": "^25.1.4",
     "@types/node": "^13.9.1",
+    "@types/request": "^2.48.4",
+    "@types/uuid": "^7.0.0",
     "jest": "^25.1.0",
     "ts-jest": "^25.2.1",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "got": "^10.6.0",
+    "request": "^2.88.2"
   }
 }
