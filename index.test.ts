@@ -3,7 +3,7 @@ import got from "got";
 import { PostmanApi } from "./postman-api/collections";
 import { v4 as uuid } from "uuid";
 
-const apiKey = process.env.POSTMAN_API_KEY || '';
+const apiKey = process.env.POSTMAN_API_KEY || "";
 
 describe("postman sync", () => {
   it("should store api key", () => {
@@ -24,12 +24,12 @@ describe("postman API", () => {
       const collections = await postmanApi.getCollections();
       expect(collections.length).toBeGreaterThan(0);
     });
-  });
-});
 
-describe("test fixture", () => {
-  it("should work", () => {
-    const exitCode = main(["a"]);
-    expect(exitCode).toBe(0);
+    it("should get a single collection", async () => {
+      const collections = await postmanApi.getCollections();
+      const collection = await postmanApi.getCollection(collections[0].uid);
+
+      expect(collection).not.toBeNull();
+    });
   });
 });
