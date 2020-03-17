@@ -1,15 +1,16 @@
 import fs from "fs";
-import { PostmanApi, Collection } from "./postman-api/collections";
-import { errorMonitor } from "events";
+import { PostmanApi, Collection } from "./postman-api";
 
 interface PostmanSyncConfig {
   apiKey?: string;
+  defaultWorkspace?: string;
 }
 
 export class PostmanSync {
   private readonly configPath?: string;
-  private config: PostmanSyncConfig = {
-    apiKey: undefined
+  public config: PostmanSyncConfig = {
+    apiKey: undefined,
+    defaultWorkspace: undefined
   };
 
   constructor(config: PostmanSyncConfig | string = "postman-sync.json") {
@@ -26,11 +27,6 @@ export class PostmanSync {
     } else {
       this.config = config;
     }
-  }
-
-  public setApiKey(apiKey: string) {
-    this.config.apiKey = apiKey;
-    this.saveConfig();
   }
 
   private loadConfig(isOptional: boolean = false): void {
@@ -50,7 +46,7 @@ export class PostmanSync {
     }
   }
 
-  private saveConfig(): void {
+  public saveConfig(): void {
     if (this.configPath) {
       fs.writeFileSync(this.configPath, JSON.stringify(this.config), {
         encoding: "utf8"
@@ -79,7 +75,7 @@ export class PostmanSync {
       return;
     }
 
-    const serverCollections = await api.getCollections();
+    const serverCollections = await api.getCollections(this.config.defaultWorkspace);
     const localCollections = files.map(filename => {
       const content = fs
         .readFileSync(`${dir}/${filename}`, { encoding: "utf-8" })
@@ -94,7 +90,7 @@ export class PostmanSync {
         await api.updateCollection(serverCol.uid, col);
       } else {
         console.debug(`creating collection ${col.info.name}`);
-        await api.createCollection(col);
+        await api.createCollection(col, this.config.defaultWorkspace);
       }
     }
   }
@@ -110,7 +106,7 @@ export class PostmanSync {
       return;
     }
 
-    const serverCollections = await api.getCollections();
+    const serverCollections = await api.getCollections(this.config.defaultWorkspace);
 
     for (const filename of files) {
       const content = fs

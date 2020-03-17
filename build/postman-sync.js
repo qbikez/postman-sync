@@ -4,9 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
-const collections_1 = require("./postman-api/collections");
+const postman_api_1 = require("./postman-api");
 class PostmanSync {
     constructor(config = "postman-sync.json") {
+        this.config = {
+            apiKey: undefined,
+            defaultWorkspace: undefined
+        };
         if (typeof config === "string") {
             const configFile = config.replace("\\", "/");
             this.configPath = configFile;
@@ -15,33 +19,40 @@ class PostmanSync {
                 const homedir = require("os").homedir();
                 this.configPath = `${homedir}/${configFile}`;
             }
+            this.loadConfig(true);
         }
         else {
             this.config = config;
         }
     }
-    setApiKey(apiKey) {
-        if (!this.configPath)
-            throw new Error("cannot set api key without configPath");
-        fs_1.default.writeFileSync(this.configPath, JSON.stringify({
-            apiKey
-        }), { encoding: "utf8" });
-    }
-    getApiKey() {
+    loadConfig(isOptional = false) {
         if (this.configPath) {
             if (!fs_1.default.existsSync(this.configPath)) {
-                throw new Error(`Config file ${this.configPath} not found. Please run 'set-api-key' command to configure.`);
+                return;
+                // throw new Error(
+                //   `Config file ${this.configPath} not found. Please run 'set-api-key' command to configure.`
+                // );
             }
             const configContent = fs_1.default.readFileSync(this.configPath, {
                 encoding: "utf8"
             });
             const config = JSON.parse(configContent.toString());
-            return config.apiKey;
+            this.config = config;
         }
-        else if (this.config) {
-            return this.config.apiKey;
+    }
+    saveConfig() {
+        if (this.configPath) {
+            fs_1.default.writeFileSync(this.configPath, JSON.stringify(this.config), {
+                encoding: "utf8"
+            });
         }
-        throw new Error("neither configPath nor config set");
+    }
+    getApiKey() {
+        this.loadConfig();
+        if (!this.config.apiKey) {
+            throw new Error(`Config file ${this.configPath} not found. Please run 'set-api-key' command to configure.`);
+        }
+        return this.config.apiKey;
     }
     async push(dir) {
         const api = this.getApi();
@@ -52,7 +63,7 @@ class PostmanSync {
             console.warn("no collections found");
             return;
         }
-        const serverCollections = await api.getCollections();
+        const serverCollections = await api.getCollections(this.config.defaultWorkspace);
         const localCollections = files.map(filename => {
             const content = fs_1.default
                 .readFileSync(`${dir}/${filename}`, { encoding: "utf-8" })
@@ -67,7 +78,7 @@ class PostmanSync {
             }
             else {
                 console.debug(`creating collection ${col.info.name}`);
-                await api.createCollection(col);
+                await api.createCollection(col, this.config.defaultWorkspace);
             }
         }
     }
@@ -80,7 +91,7 @@ class PostmanSync {
             console.warn("no collections found");
             return;
         }
-        const serverCollections = await api.getCollections();
+        const serverCollections = await api.getCollections(this.config.defaultWorkspace);
         for (const filename of files) {
             const content = fs_1.default
                 .readFileSync(`${dir}/${filename}`, { encoding: "utf-8" })
@@ -97,13 +108,13 @@ class PostmanSync {
         }
     }
     getApi() {
-        return new collections_1.PostmanApi(this.getApiKey());
+        return new postman_api_1.PostmanApi(this.getApiKey());
     }
     removeMeta(obj, key) {
         for (const prop in obj) {
             if (prop === key)
                 delete obj[prop];
-            else if (typeof obj[prop] === 'object')
+            else if (typeof obj[prop] === "object")
                 this.removeMeta(obj[prop], key);
         }
     }

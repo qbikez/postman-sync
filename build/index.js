@@ -48,7 +48,19 @@ function main() {
     })
         .demandOption("key"), async function (argv) {
         const sync = new postman_sync_1.PostmanSync();
-        await sync.setApiKey(argv.key);
+        sync.config.apiKey = argv.key;
+        await sync.saveConfig();
+    })
+        .command("set-workspace [workspace]", "sets postman api workspace", yargs => yargs
+        .positional("workspace", {
+        type: "string",
+        default: ".",
+        describe: "workspace name"
+    })
+        .demandOption("workspace"), async function (argv) {
+        const sync = new postman_sync_1.PostmanSync();
+        sync.config.defaultWorkspace = argv.workspace;
+        await sync.saveConfig();
     })
         .demandCommand()
         .help();

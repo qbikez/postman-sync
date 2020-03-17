@@ -7,7 +7,8 @@ const postman_sync_1 = require("./postman-sync");
 const uuid_1 = require("uuid");
 const fs_1 = __importDefault(require("fs"));
 const apiKey = process.env.POSTMAN_API_KEY || "";
-const testDir = "./.test-data";
+const baseDir = "./.test-data";
+const testDir = `${baseDir}/${uuid_1.v4()}`;
 describe("postman sync", () => {
     beforeAll(() => {
         if (!fs_1.default.existsSync(testDir)) {
@@ -19,10 +20,11 @@ describe("postman sync", () => {
             fs_1.default.rmdirSync(testDir, { recursive: true });
         }
     });
-    it("should store api key", () => {
+    fit("should store api key", () => {
         const sync = new postman_sync_1.PostmanSync(`${testDir}/test-config.json`);
         const key = `test-${uuid_1.v4()}`;
-        sync.setApiKey(key);
+        sync.config.apiKey = key;
+        sync.saveConfig();
         const retrieved = sync.getApiKey();
         expect(retrieved).toBe(key);
     });

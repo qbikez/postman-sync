@@ -1,6 +1,6 @@
 import { PostmanSync } from "./postman-sync";
 import { v4 as uuid } from "uuid";
-import { Collection } from "./postman-api/collections";
+import { Collection } from "./postman-api";
 import fs from "fs";
 
 const apiKey = process.env.POSTMAN_API_KEY || "";
@@ -22,7 +22,8 @@ describe("postman sync", () => {
   fit("should store api key", () => {
     const sync = new PostmanSync(`${testDir}/test-config.json`);
     const key = `test-${uuid()}`;
-    sync.setApiKey(key);
+    sync.config.apiKey = key;
+    sync.saveConfig();
 
     const retrieved = sync.getApiKey();
     expect(retrieved).toBe(key);
