@@ -104,6 +104,7 @@ class PostmanSync {
             }
             console.debug(`pulling ${filename}`);
             const serverCol = await api.getCollection(info.uid);
+            this.removeMeta(serverCol, '_postman_id');
             fs_1.default.writeFileSync(`${dir}/${filename}`, JSON.stringify(serverCol, null, 2), "utf-8");
         }
     }
