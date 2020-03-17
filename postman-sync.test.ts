@@ -4,13 +4,22 @@ import { Collection } from "./postman-api/collections";
 import fs from "fs";
 
 const apiKey = process.env.POSTMAN_API_KEY || "";
-const testDir = "./.test-data";
+const baseDir = "./.test-data";
+const testDir = `${baseDir}/${uuid()}`;
 describe("postman sync", () => {
-  if (!fs.existsSync(testDir)) {
-    fs.mkdirSync(testDir);
-  }
+  beforeAll(() => {
+    if (!fs.existsSync(testDir)) {
+      fs.mkdirSync(testDir);
+    }
+  });
 
-  it("should store api key", () => {
+  afterAll(() => {
+    if (fs.existsSync(testDir)) {
+      fs.rmdirSync(testDir, { recursive: true });
+    }
+  });
+
+  fit("should store api key", () => {
     const sync = new PostmanSync(`${testDir}/test-config.json`);
     const key = `test-${uuid()}`;
     sync.setApiKey(key);

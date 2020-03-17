@@ -3,12 +3,14 @@ import { PostmanApi, Collection } from "./postman-api/collections";
 import { errorMonitor } from "events";
 
 interface PostmanSyncConfig {
-  apiKey: string;
+  apiKey?: string;
 }
 
 export class PostmanSync {
   private readonly configPath?: string;
-  private config?: PostmanSyncConfig;
+  private config: PostmanSyncConfig = {
+    apiKey: undefined
+  };
 
   constructor(config: PostmanSyncConfig | string = "postman-sync.json") {
     if (typeof config === "string") {
@@ -20,40 +22,50 @@ export class PostmanSync {
         const homedir = require("os").homedir();
         this.configPath = `${homedir}/${configFile}`;
       }
+      this.loadConfig(true);
     } else {
       this.config = config;
     }
   }
 
   public setApiKey(apiKey: string) {
-    if (!this.configPath)
-      throw new Error("cannot set api key without configPath");
-    fs.writeFileSync(
-      this.configPath,
-      JSON.stringify({
-        apiKey
-      }),
-      { encoding: "utf8" }
-    );
+    this.config.apiKey = apiKey;
+    this.saveConfig();
   }
 
-  public getApiKey() {
+  private loadConfig(isOptional: boolean = false): void {
     if (this.configPath) {
-
       if (!fs.existsSync(this.configPath)) {
-        throw new Error(`Config file ${this.configPath} not found. Please run 'set-api-key' command to configure.`);
+        return;
+        // throw new Error(
+        //   `Config file ${this.configPath} not found. Please run 'set-api-key' command to configure.`
+        // );
       }
 
       const configContent = fs.readFileSync(this.configPath, {
         encoding: "utf8"
       });
       const config = JSON.parse(configContent.toString()) as PostmanSyncConfig;
-      return config.apiKey;
-    } else if (this.config) {
-      return this.config.apiKey;
+      this.config = config;
     }
+  }
 
-    throw new Error("neither configPath nor config set");
+  private saveConfig(): void {
+    if (this.configPath) {
+      fs.writeFileSync(this.configPath, JSON.stringify(this.config), {
+        encoding: "utf8"
+      });
+    }
+  }
+
+  public getApiKey(): string {
+    this.loadConfig();
+    if (!this.config.apiKey) {
+      throw new Error(
+        `Config file ${this.configPath} not found. Please run 'set-api-key' command to configure.`
+      );
+    }
+    return this.config.apiKey;
   }
 
   public async push(dir: string) {
@@ -79,10 +91,10 @@ export class PostmanSync {
       const serverCol = serverCollections.find(c => c.name === col.info.name);
       if (serverCol) {
         console.debug(`updating collection ${col.info.name}`);
-        api.updateCollection(serverCol.uid, col);
+        await api.updateCollection(serverCol.uid, col);
       } else {
         console.debug(`creating collection ${col.info.name}`);
-        api.createCollection(col);
+        await api.createCollection(col);
       }
     }
   }
@@ -125,5 +137,12 @@ export class PostmanSync {
 
   private getApi() {
     return new PostmanApi(this.getApiKey());
+  }
+
+  private removeMeta(obj: { [key: string]: any }, key: string) {
+    for (const prop in obj) {
+      if (prop === key) delete obj[prop];
+      else if (typeof obj[prop] === "object") this.removeMeta(obj[prop], key);
+    }
   }
 }
